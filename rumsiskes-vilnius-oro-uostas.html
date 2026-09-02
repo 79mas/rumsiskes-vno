@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rumšiškės – Vilniaus oro uostas | EUC Rover</title>
+<meta name="description" content="122 km per vieną dieną elektriniu vienračiu Leaperkim Lynx-S: purvini laukai, Elektrėnų jėgainė, paklydimai ir baterijos lenktynės su laiku.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+<style>
+  :root{
+    --bg: #14120F;
+    --bg-panel: #1C1A16;
+    --bg-panel-2: #211E19;
+    --line: #332F27;
+    --text: #F2EFE6;
+    --text-dim: #A9A499;
+    --accent: #FF5A1F;
+    --accent-2: #FFB238;
+    --speed-lo: #2E6E9E;
+    --speed-mid: #3FA796;
+    --ele-lo: #1F5E56;
+    --ele-mid: #B08D2E;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Big Shoulders Display',sans-serif;
+    text-transform:none;
+    font-weight:700;
+    letter-spacing:0.01em;
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:var(--accent);}
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px;}
+  .wrap-wide{max-width:920px; margin:0 auto; padding:0 24px;}
+
+  /* header */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 24px;
+    border-bottom:1px solid var(--line);
+  }
+  .logo{
+    font-family:'Big Shoulders Display',sans-serif;
+    font-weight:800; font-size:1.3rem; letter-spacing:0.02em;
+    color:var(--text);
+  }
+  .logo span{color:var(--accent);}
+  .lang-toggle{display:flex; gap:2px; border:1px solid var(--line); border-radius:4px; overflow:hidden;}
+  .lang-toggle button{
+    background:var(--bg-panel); color:var(--text-dim); border:none; padding:6px 12px;
+    font-family:'IBM Plex Mono',monospace; font-size:0.8rem; cursor:pointer;
+  }
+  .lang-toggle button.active{background:var(--accent); color:#14120F; font-weight:500;}
+
+  /* hero */
+  .hero{
+    position:relative;
+    min-height:64vh;
+    display:flex; align-items:flex-end;
+    background-image: linear-gradient(180deg, rgba(20,18,15,0.35) 0%, rgba(20,18,15,0.55) 40%, rgba(20,18,15,0.97) 100%), url('rumsiskes-vilnius-oro-uostas/2.jpg');
+    background-size:cover;
+    background-position:center 30%;
+  }
+  .hero-inner{padding:48px 24px 40px; max-width:920px; margin:0 auto; width:100%;}
+  .hero-eyebrow{
+    font-family:'IBM Plex Mono',monospace; color:var(--accent-2); font-size:0.85rem;
+    margin-bottom:10px;
+  }
+  .hero h1{font-size:clamp(2.4rem, 6vw, 4.2rem); line-height:0.98; color:#fff;}
+  .hero-stat{
+    display:inline-flex; align-items:baseline; gap:10px; margin-top:20px;
+    font-family:'Big Shoulders Display',sans-serif;
+  }
+  .hero-stat .num{font-size:3rem; font-weight:800; color:var(--accent);}
+  .hero-stat .unit{font-size:1.1rem; color:var(--text-dim);}
+
+  section{padding:56px 0;}
+  section.tight{padding:32px 0;}
+  .section-title{
+    font-size:1.6rem; color:var(--text); margin-bottom:24px;
+    border-left:3px solid var(--accent); padding-left:14px;
+  }
+  p{color:var(--text); max-width:70ch;}
+  p.muted{color:var(--text-dim); font-size:0.95rem;}
+
+  figure{margin:32px 0;}
+  figure img{width:100%; display:block; border-radius:2px;}
+  figcaption{font-size:0.85rem; color:var(--text-dim); margin-top:8px; font-family:'IBM Plex Mono',monospace;}
+
+  /* stats grid */
+  .stats-grid{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+    background:var(--line); border:1px solid var(--line);
+  }
+  .stat-cell{background:var(--bg-panel); padding:20px 16px;}
+  .stat-cell .label{font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; font-family:'IBM Plex Mono',monospace;}
+  .stat-cell .value{font-family:'Big Shoulders Display',sans-serif; font-weight:700; font-size:1.7rem; color:var(--text); margin-top:6px;}
+  .stat-cell .value .u{font-size:0.9rem; color:var(--text-dim); font-family:'Inter',sans-serif; font-weight:400; margin-left:3px;}
+  @media(max-width:640px){ .stats-grid{grid-template-columns:repeat(2,1fr);} }
+
+  /* maps */
+  .map-block{margin-bottom:40px;}
+  .map-container{height:420px; width:100%; border:1px solid var(--line); background:var(--bg-panel);}
+  .legend{
+    display:flex; align-items:center; gap:10px; margin-top:10px;
+    font-family:'IBM Plex Mono',monospace; font-size:0.78rem; color:var(--text-dim);
+  }
+  .legend-bar{height:8px; flex:1; border-radius:2px;}
+  .legend-bar.speed{background:linear-gradient(90deg, var(--speed-lo), var(--speed-mid), var(--accent));}
+  .legend-bar.ele{background:linear-gradient(90deg, var(--ele-lo), var(--ele-mid), var(--accent));}
+
+  /* share + download */
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 16px; border-radius:3px; text-decoration:none;
+    font-family:'IBM Plex Mono',monospace; font-size:0.82rem;
+    border:1px solid var(--line); color:var(--text); background:var(--bg-panel);
+    cursor:pointer;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent);}
+  .btn.primary{background:var(--accent); color:#14120F; border-color:var(--accent); font-weight:500;}
+  .btn.primary:hover{color:#14120F; opacity:0.9;}
+
+  .video-wrap{position:relative; padding-bottom:56.25%; height:0; overflow:hidden; background:var(--bg-panel); border:1px solid var(--line);}
+  .video-wrap iframe{position:absolute; top:0; left:0; width:100%; height:100%; border:0;}
+  .video-placeholder{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--text-dim); font-family:'IBM Plex Mono',monospace; font-size:0.85rem; text-align:center; padding:20px;
+  }
+
+  footer{border-top:1px solid var(--line); padding:32px 0; margin-top:24px;}
+  footer p{color:var(--text-dim); font-size:0.82rem;}
+
+  #en{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EUC <span>ROVER</span></div>
+  <div class="lang-toggle">
+    <button id="btn-lt" class="active" onclick="setLang('lt')">LT</button>
+    <button id="btn-en" onclick="setLang('en')">EN</button>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow mono" id="hero-eyebrow">RIDE BEYOND LIMITS — MARŠRUTO ATASKAITA</div>
+    <h1 id="hero-title">Rumšiškės → Vilniaus oro uostas</h1>
+    <div class="hero-stat">
+      <span class="num">122</span><span class="unit">km · Leaperkim Lynx-S</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LT ============ -->
+<div id="lt">
+
+<section class="wrap">
+  <p>Rytą išriedėjau iš Rumšiškių su savo Lynx-S, vienas, žinodamas, kad laukia ilgiausia diena balansuojant ant vieno rato, kokią esu bandęs. Planas atrodė tvarkingas popieriuje, bet realybė parodė, kad praktika nuo teorijos skiriasi.</p>
+
+  <p>Pirmieji kilometrai parodė, kad navigacija mane nuvedė tiesiai per laukus — vieškelis, kuris žemėlapyje atrodė kaip kelias, greitai pavirto žemės ūkio technikos provėžomis. Provėžos buvo molingos ir drėgnos, ir per kelias minutes protektorius buvo taip užkimštas molio, kad ratas tapo praktiškai lygus, slidus kaip glaistytas. Neliko nieko kito, kaip ratą pastumti pėsčiomis, kol išlindau į padoresnį kelią. Ties tuo tašku (~20 km) pakėliau ratą ir pasukau jį ore — išcentrinė jėga per kelias sekundes išvalė protektorių nuo molio.</p>
+
+  <figure>
+    <img src="rumsiskes-vilnius-oro-uostas/1.jpg" alt="Prie Elektrėnų jėgainės, kelio drabužiai purvini">
+    <figcaption>~45 km · Elektrėnų jėgainės rytinis pakraštis</figcaption>
+  </figure>
+
+  <p>Toliau kelionė nusiramino. Vienas maloniausių momentų — trasa susidėliojo taip, kad pravažiavau pačiu Elektrėnų jėgainės rytiniu pakraščiu. Šį pastatą norėjau pamatyti iš arčiau jau seniai, tad tai buvo turbūt džiaugsmingiausia kelionės dalis. Dėliojant maršrutą dėmesį skyriau mažesnio intensyvumo kelių pasirinkimui, o ne ekskursinei jo daliai, tad jėgainės aplankymas buvo maloni ir netikėta staigmena.</p>
+
+  <p>Nusivylimą, nors ir suprantamą, atnešė keli paklydimai — trasa juk buvo suplanuota paskubomis, be gilesnės analizės ir žvalgybos. Dalis jų — vien dėl to, kad žemėlapyje pažymėti keliai realybėje neegzistavo, net takelio ten nebuvo. Vienas ryškiausių nuklydimų įvyko ties Abromiškėmis: tikėjausi, kad pavyks apvažiuoti kelio darbus, bet jie buvo užėmę visą kelio plotį — teko vietoje ieškoti naujo kelio, kas pridėjo dar vieną nuklydimą. Vievis buvo apvažiuotas pietiniu pakraščiu.</p>
+
+  <p>Antrasis „anomalijos" epizodas (~70 km, netoli Vievio–Trakų juostos) — vėl ta pati istorija: ratas ore, molis lauk iš protektoriaus.</p>
+
+  <p>Artėjant prie Vilniaus pradėjo lyti — lygiai taip, kaip rodė prognozė prieš startą.</p>
+
+  <figure>
+    <img src="rumsiskes-vilnius-oro-uostas/2.jpg" alt="Šlapias vizieris ties Vilniaus riba lietuje">
+    <figcaption>~95 km · Vilniaus riba, lietuje</figcaption>
+  </figure>
+
+  <p>Netrukus po to prasidėjo pati sudėtingiausia kelionės dalis techniniu požiūriu: tiek rato, tiek telefono baterijos artėjo prie nulio. Grigiškėse sustojau pasikrauti abu — bet senkanti telefono baterija sustabdė rato telemetrijos registravimą. Taip atsirado ta valandos „juodoji skylė" duomenyse. Gaila, kad neliko nuoseklaus įrašo, bet tai puiki pamoka — ateityje reikia geriau suplanuoti ir apskaičiuoti krovimo poreikius, kad tokių situacijų būtų galima išvengti.</p>
+
+  <p>Paskutiniai kilometrai iki Vilniaus oro uosto praėjo jau žinant, kad sunkiausia dalis liko už nugaros.</p>
+
+  <p>O šiaip — labai daug įspūdžių, daug naujos ir naudingos patirties. Jeigu turėčiau galimybę grįžti laiku atgal su dabartine patirtimi, nieko nekeisčiau — kiekvienas sunkumas, su kuriuo teko susidurti, davė vertingą pamoką, be kurios tokių kelionių planavimas liktų tik teorinis svaičiojimas, neturintis realaus pagrindo. Didžiausiu iššūkiu buvo psichologinis momentas dėl tokios ilgos kelionės — šiandien atrodo, kad tai buvo tik netinkamos perspektyvos padarinys, žiūrint į visą situaciją.</p>
+</section>
+
+<section class="wrap-wide tight">
+  <h2 class="section-title">Skaičiai</h2>
+  <div class="stats-grid">
+    <div class="stat-cell"><div class="label">Atstumas</div><div class="value">122,1<span class="u">km</span></div></div>
+    <div class="stat-cell"><div class="label">Bendra trukmė</div><div class="value">8:19<span class="u">val.</span></div></div>
+    <div class="stat-cell"><div class="label">Judėjimo laikas</div><div class="value">6:17<span class="u">val.</span></div></div>
+    <div class="stat-cell"><div class="label">Vid. greitis</div><div class="value">19,4<span class="u">km/h</span></div></div>
+    <div class="stat-cell"><div class="label">Maks. greitis</div><div class="value">38,8<span class="u">km/h</span></div></div>
+    <div class="stat-cell"><div class="label">Kopimas</div><div class="value">~910<span class="u">m</span></div></div>
+    <div class="stat-cell"><div class="label">Maks. aukštis</div><div class="value">188<span class="u">m</span></div></div>
+    <div class="stat-cell"><div class="label">Sustojimų</div><div class="value">30<span class="u">kartai</span></div></div>
+  </div>
+</section>
+
+<section class="wrap-wide">
+  <h2 class="section-title">Maršrutas — greitis</h2>
+  <div class="map-block">
+    <div id="map-speed" class="map-container"></div>
+    <div class="legend"><span>0 km/h</span><div class="legend-bar speed"></div><span>39 km/h</span></div>
+  </div>
+
+  <h2 class="section-title">Maršrutas — aukštis</h2>
+  <div class="map-block">
+    <div id="map-ele" class="map-container"></div>
+    <div class="legend"><span>35 m</span><div class="legend-bar ele"></div><span>188 m</span></div>
+  </div>
+  <p class="muted">Pradžios ir pabaigos taškai (~500 m) apkarpyti privatumo sumetimais.</p>
+</section>
+
+<section class="wrap-wide tight">
+  <h2 class="section-title">Video</h2>
+  <div class="video-wrap">
+    <div class="video-placeholder">Video bus įkeltas netrukus.</div>
+    <!-- Kai video paruoštas: <iframe src="https://www.youtube.com/embed/VIDEO_ID" allowfullscreen></iframe> -->
+  </div>
+</section>
+
+<section class="wrap-wide tight">
+  <h2 class="section-title">Trasa ir dalinimasis</h2>
+  <div class="actions">
+    <a class="btn primary" href="rumsiskes-vilnius-oro-uostas/rumsiskes-vilnius-oro-uostas.gpx" download>⬇ Atsisiųsti GPX</a>
+    <button class="btn" onclick="shareTo('facebook')">Facebook</button>
+    <button class="btn" onclick="shareTo('x')">X</button>
+    <button class="btn" onclick="shareTo('whatsapp')">WhatsApp</button>
+    <button class="btn" onclick="shareTo('reddit')">Reddit</button>
+  </div>
+</section>
+
+</div>
+<!-- ============ /LT ============ -->
+
+<!-- ============ EN ============ -->
+<div id="en">
+
+<section class="wrap">
+  <p>I rolled out of Rumšiškės in the morning on my Lynx-S, alone, knowing the longest day I'd ever attempted balancing on one wheel was ahead of me. The plan looked solid on paper, but reality showed that practice and theory are two different things.</p>
+
+  <p>The first kilometers showed that navigation had sent me straight across open fields — a track that looked like a road on the map quickly turned into farm-vehicle ruts. The ruts were muddy and wet, and within minutes the tread was so packed with mud that the wheel became practically smooth, slick as glazed. There was nothing to do but push the wheel on foot until I reached a decent road. At that point (~20 km) I lifted the wheel and spun it in the air — centrifugal force cleared the mud out of the tread in a few seconds.</p>
+
+  <figure>
+    <img src="rumsiskes-vilnius-oro-uostas/1.jpg" alt="At the Elektrėnai power plant, riding gear covered in mud">
+    <figcaption>~45 km · eastern edge of the Elektrėnai power plant</figcaption>
+  </figure>
+
+  <p>After that the ride settled down. One of the best moments — the route worked out so that I passed right along the eastern edge of the Elektrėnai power plant. I'd wanted to see this building up close for a long time, so this was probably the most joyful part of the trip. When laying out the route I'd focused on picking lower-traffic roads rather than sightseeing, so getting to see the power plant was a pleasant, unexpected surprise.</p>
+
+  <p>The disappointing part, though understandable, was getting lost a few times — the route was put together in a hurry, without much deeper analysis or scouting. Some of it was simply because roads marked on the map didn't exist in reality — not even a path. One of the clearest wrong turns happened near Abromiškės: I'd expected to route around some roadworks, but they'd closed off the entire width of the road, so I had to find a new way on the spot, which added another detour. I went around Vievis along its southern edge.</p>
+
+  <p>The second "anomaly" episode (~70 km, near the Vievis–Trakai stretch) is the same story again: wheel in the air, mud out of the tread.</p>
+
+  <p>Approaching Vilnius, it started raining — exactly as the forecast had said before the start.</p>
+
+  <figure>
+    <img src="rumsiskes-vilnius-oro-uostas/2.jpg" alt="Wet visor at the Vilnius city limit in the rain">
+    <figcaption>~95 km · the Vilnius city limit, in the rain</figcaption>
+  </figure>
+
+  <p>Shortly after, the most technically demanding part of the trip began: both the wheel's and the phone's batteries were approaching zero. I stopped in Grigiškės to charge both — but the phone's dying battery cut off the wheel's telemetry logging. That's what created that hour-long "black hole" in the data. It's a shame there's no continuous record, but it's a great lesson — I need to plan and calculate charging needs better in the future to avoid situations like this.</p>
+
+  <p>The last kilometers to Vilnius Airport passed knowing the hardest part was already behind me.</p>
+
+  <p>Overall, though — a lot of impressions, a lot of new and useful experience. If I could go back in time with the experience I have now, I wouldn't change a thing — every difficulty I ran into taught a valuable lesson, without which planning trips like this is just theoretical wishful thinking with no real grounding. The biggest challenge was the psychological weight of such a long trip — looking back today, it seems like that was simply the result of looking at the whole situation from the wrong perspective.</p>
+</section>
+
+<section class="wrap-wide tight">
+  <h2 class="section-title">The numbers</h2>
+  <div class="stats-grid">
+    <div class="stat-cell"><div class="label">Distance</div><div class="value">122.1<span class="u">km</span></div></div>
+    <div class="stat-cell"><div class="label">Total time</div><div class="value">8:19<span class="u">h</span></div></div>
+    <div class="stat-cell"><div class="label">Moving time</div><div class="value">6:17<span class="u">h</span></div></div>
+    <div class="stat-cell"><div class="label">Avg speed</div><div class="value">19.4<span class="u">km/h</span></div></div>
+    <div class="stat-cell"><div class="label">Max speed</div><div class="value">38.8<span class="u">km/h</span></div></div>
+    <div class="stat-cell"><div class="label">Climb</div><div class="value">~910<span class="u">m</span></div></div>
+    <div class="stat-cell"><div class="label">Max altitude</div><div class="value">188<span class="u">m</span></div></div>
+    <div class="stat-cell"><div class="label">Stops</div><div class="value">30<span class="u">times</span></div></div>
+  </div>
+</section>
+
+<section class="wrap-wide">
+  <h2 class="section-title">Route — speed</h2>
+  <div class="map-block">
+    <div id="map-speed-en" class="map-container"></div>
+    <div class="legend"><span>0 km/h</span><div class="legend-bar speed"></div><span>39 km/h</span></div>
+  </div>
+
+  <h2 class="section-title">Route — elevation</h2>
+  <div class="map-block">
+    <div id="map-ele-en" class="map-container"></div>
+    <div class="legend"><span>35 m</span><div class="legend-bar ele"></div><span>188 m</span></div>
+  </div>
+  <p class="muted">The start and end points (~500 m) are trimmed for privacy.</p>
+</section>
+
+<section class="wrap-wide tight">
+  <h2 class="section-title">Video</h2>
+  <div class="video-wrap">
+    <div class="video-placeholder">Video coming soon.</div>
+  </div>
+</section>
+
+<section class="wrap-wide tight">
+  <h2 class="section-title">Route &amp; sharing</h2>
+  <div class="actions">
+    <a class="btn primary" href="rumsiskes-vilnius-oro-uostas/rumsiskes-vilnius-oro-uostas.gpx" download>⬇ Download GPX</a>
+    <button class="btn" onclick="shareTo('facebook')">Facebook</button>
+    <button class="btn" onclick="shareTo('x')">X</button>
+    <button class="btn" onclick="shareTo('whatsapp')">WhatsApp</button>
+    <button class="btn" onclick="shareTo('reddit')">Reddit</button>
+  </div>
+</section>
+
+</div>
+<!-- ============ /EN ============ -->
+
+<footer>
+  <div class="wrap-wide">
+    <p id="footer-note">Vieta ties starto ir finišo tašku apkarpyta privatumo sumetimais. © EUC Rover.</p>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const trackData = [[54.869103, 24.218836, 0.0, 38.7], [54.867905, 24.217713, 23.8, 74.0], [54.866922, 24.218056, 26.3, 73.9], [54.866088, 24.219102, 18.5, 74.7], [54.864931, 24.21803, 19.3, 76.6], [54.863674, 24.216901, 22.1, 76.4], [54.862425, 24.215665, 17.1, 71.7], [54.861085, 24.215537, 12.1, 60.9], [54.859935, 24.214299, 20.9, 48.6], [54.859044, 24.21441, 15.1, 42.9], [54.85855, 24.21608, 13.8, 40.7], [54.857797, 24.217668, 22.4, 39.1], [54.857735, 24.219712, 15.4, 36.7], [54.856911, 24.221848, 15.4, 34.8], [54.855894, 24.223117, 18.9, 34.6], [54.854773, 24.224176, 16.4, 35.3], [54.853674, 24.223936, 8.1, 35.7], [54.852663, 24.223237, 10.3, 36.9], [54.851498, 24.222882, 6.5, 38.2], [54.850565, 24.221743, 13.2, 38.4], [54.849359, 24.221061, 10.0, 38.3], [54.848181, 24.220518, 15.0, 39.7], [54.847311, 24.222016, 16.6, 44.2], [54.846502, 24.223755, 18.9, 51.1], [54.845721, 24.225514, 10.1, 57.4], [54.844915, 24.22725, 18.2, 63.6], [54.844057, 24.229137, 19.9, 71.5], [54.843243, 24.230842, 17.6, 76.8], [54.842441, 24.232653, 24.8, 79.9], [54.841962, 24.234517, 20.3, 82.3], [54.841652, 24.235695, 27.0, 83.1], [54.840226, 24.237503, 32.2, 82.3], [54.838933, 24.2402, 32.7, 81.4], [54.837792, 24.242743, 32.0, 80.7], [54.836687, 24.245169, 31.0, 81.3], [54.837256, 24.246394, 12.7, 84.3], [54.838407, 24.247737, 24.8, 85.6], [54.839421, 24.250316, 31.0, 84.3], [54.840332, 24.252558, 22.6, 81.9], [54.841604, 24.254466, 28.3, 78.3], [54.843004, 24.256256, 26.4, 77.3], [54.842691, 24.257863, 28.5, 79.6], [54.842259, 24.261136, 36.5, 81.3], [54.841872, 24.264586, 31.7, 81.9], [54.841513, 24.267869, 33.3, 81.5], [54.841254, 24.271232, 31.9, 80.6], [54.84107, 24.274616, 32.4, 79.4], [54.840726, 24.277912, 31.2, 78.8], [54.8403, 24.281162, 31.3, 79.6], [54.839866, 24.284404, 31.3, 81.1], [54.839437, 24.287541, 24.4, 82.9], [54.838964, 24.289791, 17.7, 83.5], [54.83753, 24.289367, 21.7, 82.5], [54.83601, 24.288837, 27.6, 80.9], [54.834482, 24.288353, 23.4, 78.4], [54.833032, 24.28789, 21.7, 73.0], [54.831726, 24.287434, 17.9, 65.1], [54.830413, 24.287044, 17.7, 59.4], [54.829161, 24.286628, 19.4, 58.5], [54.827837, 24.286198, 24.5, 60.7], [54.826454, 24.285747, 25.0, 64.0], [54.825177, 24.285241, 17.3, 70.4], [54.824163, 24.283649, 10.4, 77.0], [54.824197, 24.285858, 16.4, 79.5], [54.824265, 24.288441, 20.8, 79.8], [54.824328, 24.290748, 17.1, 77.9], [54.824405, 24.29304, 21.0, 76.8], [54.824467, 24.295175, 19.2, 78.9], [54.824621, 24.297604, 19.7, 81.2], [54.825012, 24.299812, 23.1, 82.8], [54.825425, 24.302075, 22.2, 83.9], [54.825865, 24.304475, 22.7, 84.1], [54.826639, 24.30623, 24.2, 81.5], [54.82765, 24.307464, 20.0, 77.6], [54.828189, 24.309488, 14.7, 78.8], [54.828017, 24.3118, 21.4, 88.2], [54.827884, 24.314045, 25.1, 95.0], [54.827743, 24.31657, 24.9, 97.9], [54.827618, 24.31901, 24.7, 99.4], [54.827482, 24.3215, 24.0, 100.5], [54.827186, 24.324107, 29.7, 100.4], [54.82687, 24.326776, 25.7, 98.5], [54.826514, 24.329627, 25.1, 94.1], [54.825977, 24.332, 25.9, 86.9], [54.825151, 24.333829, 23.4, 79.4], [54.823899, 24.334482, 10.7, 74.1], [54.822654, 24.335443, 18.5, 71.0], [54.82148, 24.336317, 20.3, 69.7], [54.820654, 24.337047, 15.5, 71.0], [54.821511, 24.338716, 18.8, 74.1], [54.8223, 24.340341, 20.6, 74.3], [54.82298, 24.342405, 23.7, 71.4], [54.823411, 24.344736, 21.3, 68.1], [54.823815, 24.346764, 9.8, 66.4], [54.82427, 24.348578, 7.3, 66.0], [54.824679, 24.350737, 16.0, 67.0], [54.825363, 24.35278, 11.8, 69.3], [54.826211, 24.354473, 3.5, 71.9], [54.826887, 24.3561, 5.9, 74.1], [54.827285, 24.358048, 5.7, 75.6], [54.827487, 24.359982, 6.4, 76.3], [54.827902, 24.361912, 6.8, 76.0], [54.828324, 24.363723, 0.6, 74.9], [54.827893, 24.366336, 30.0, 73.4], [54.827472, 24.369554, 33.0, 71.1], [54.8266, 24.372482, 34.7, 70.7], [54.825408, 24.375039, 32.4, 73.1], [54.82442, 24.377309, 7.9, 74.3], [54.825825, 24.377508, 16.7, 73.1], [54.827072, 24.377497, 19.3, 72.7], [54.826974, 24.379033, 18.7, 73.6], [54.826436, 24.381004, 20.8, 74.8], [54.82595, 24.382834, 19.7, 75.1], [54.825394, 24.384847, 18.6, 74.6], [54.824871, 24.38683, 19.0, 74.1], [54.824343, 24.38873, 19.8, 74.0], [54.823813, 24.390614, 20.0, 74.3], [54.823283, 24.392626, 18.9, 75.1], [54.822764, 24.394556, 20.7, 76.3], [54.822173, 24.396695, 22.9, 77.8], [54.821623, 24.398706, 22.5, 79.8], [54.821103, 24.400692, 21.6, 82.5], [54.82053, 24.402773, 22.3, 84.4], [54.819931, 24.405003, 29.2, 84.1], [54.819312, 24.407343, 25.1, 82.5], [54.818668, 24.409766, 26.9, 82.0], [54.818099, 24.411847, 22.0, 83.4], [54.817488, 24.414185, 25.2, 85.5], [54.816837, 24.416513, 19.2, 87.5], [54.816295, 24.418603, 23.9, 88.3], [54.815727, 24.420842, 25.1, 87.5], [54.81511, 24.423299, 26.5, 86.7], [54.8145, 24.425693, 22.5, 85.6], [54.813478, 24.426681, 29.6, 83.4], [54.81156, 24.426443, 33.6, 81.8], [54.809723, 24.426196, 27.7, 81.7], [54.808416, 24.426377, 24.9, 80.3], [54.807194, 24.428255, 26.1, 76.5], [54.806048, 24.430267, 28.7, 71.5], [54.80573, 24.432592, 23.0, 69.3], [54.805861, 24.434929, 23.1, 69.0], [54.805203, 24.437184, 25.0, 70.2], [54.804756, 24.439684, 22.7, 72.5], [54.80434, 24.441963, 20.7, 73.1], [54.803055, 24.441456, 26.1, 70.1], [54.8016, 24.441047, 20.5, 67.9], [54.80005, 24.440636, 28.7, 67.9], [54.79835, 24.440087, 28.4, 68.5], [54.796869, 24.438986, 28.9, 69.1], [54.795575, 24.437475, 24.9, 70.5], [54.794455, 24.437415, 30.2, 71.6], [54.793419, 24.439964, 27.6, 71.4], [54.792755, 24.442397, 34.3, 71.7], [54.79187, 24.445217, 37.2, 71.3], [54.790967, 24.447988, 29.5, 70.6], [54.790604, 24.450708, 36.9, 71.3], [54.790324, 24.45381, 32.0, 75.3], [54.789657, 24.456647, 32.6, 85.2], [54.787945, 24.458184, 31.8, 96.7], [54.786924, 24.457404, 18.0, 103.9], [54.785686, 24.457052, 23.1, 108.0], [54.784367, 24.456851, 21.0, 110.2], [54.783819, 24.456414, 14.2, 111.3], [54.782457, 24.456272, 17.6, 112.7], [54.781219, 24.456116, 12.9, 115.6], [54.780193, 24.456723, 22.3, 119.1], [54.779175, 24.458587, 25.4, 121.5], [54.778452, 24.460924, 25.5, 124.2], [54.777348, 24.461474, 19.2, 128.6], [54.776111, 24.461641, 22.5, 132.0], [54.774844, 24.462017, 3.0, 132.2], [54.774753, 24.464259, 20.0, 132.2], [54.774646, 24.466455, 20.1, 133.4], [54.774548, 24.468839, 24.1, 134.8], [54.774444, 24.471218, 21.0, 134.8], [54.774361, 24.473465, 3.6, 135.7], [54.774267, 24.475646, 14.4, 136.7], [54.774564, 24.477973, 13.7, 136.8], [54.775002, 24.480042, 20.7, 136.1], [54.775267, 24.482218, 13.5, 135.5], [54.775549, 24.484193, 18.4, 135.8], [54.775995, 24.486145, 18.3, 136.3], [54.777184, 24.486505, 20.7, 133.6], [54.778419, 24.486787, 20.9, 129.6], [54.779338, 24.487928, 15.6, 127.5], [54.77857, 24.490301, 28.0, 128.4], [54.777788, 24.492893, 27.4, 128.8], [54.777353, 24.495793, 28.2, 126.1], [54.777016, 24.498539, 25.9, 124.1], [54.776648, 24.501316, 26.5, 127.6], [54.775953, 24.50384, 30.1, 130.7], [54.774709, 24.505392, 21.2, 128.9], [54.773562, 24.506152, 22.0, 126.0], [54.772375, 24.507339, 25.1, 123.6], [54.771315, 24.508569, 18.9, 124.7], [54.770109, 24.509329, 22.2, 127.5], [54.768876, 24.509811, 19.7, 129.6], [54.767699, 24.510517, 23.4, 131.8], [54.766697, 24.511997, 23.3, 134.1], [54.765591, 24.513361, 24.2, 135.2], [54.764271, 24.514279, 24.2, 134.8], [54.762949, 24.514869, 23.3, 135.2], [54.761745, 24.516263, 25.5, 135.1], [54.76045, 24.517493, 23.5, 133.6], [54.759402, 24.518732, 14.6, 131.1], [54.758227, 24.520183, 24.1, 128.0], [54.756763, 24.521104, 29.4, 125.8], [54.755417, 24.522854, 27.0, 126.8], [54.755936, 24.524183, 19.9, 128.3], [54.75711, 24.524885, 21.7, 127.9], [54.758017, 24.526585, 16.0, 126.5], [54.757833, 24.528854, 18.6, 124.9], [54.757706, 24.53107, 15.5, 122.4], [54.757555, 24.53339, 16.4, 119.2], [54.757428, 24.535691, 21.1, 117.1], [54.757297, 24.537795, 21.2, 116.8], [54.757167, 24.539947, 20.5, 116.9], [54.757024, 24.542119, 19.7, 115.9], [54.757859, 24.543601, 20.8, 114.0], [54.758858, 24.545125, 15.5, 108.9], [54.759282, 24.547216, 17.6, 102.6], [54.76021, 24.548954, 17.8, 99.8], [54.760374, 24.550855, 19.7, 100.9], [54.760093, 24.552843, 20.7, 104.3], [54.76014, 24.555056, 20.2, 108.4], [54.759854, 24.55731, 23.6, 112.3], [54.759405, 24.559302, 22.1, 114.6], [54.759052, 24.561473, 15.4, 115.6], [54.758457, 24.563606, 15.7, 116.1], [54.75789, 24.565784, 18.3, 115.6], [54.757286, 24.567631, 22.4, 115.2], [54.756844, 24.569649, 21.5, 115.0], [54.756328, 24.571576, 19.2, 114.3], [54.756535, 24.573732, 18.6, 113.2], [54.756765, 24.575872, 23.5, 112.9], [54.757029, 24.57825, 22.7, 113.8], [54.757309, 24.580371, 20.2, 113.5], [54.757607, 24.582549, 22.3, 112.5], [54.757895, 24.584815, 24.6, 111.5], [54.758554, 24.586573, 22.1, 110.9], [54.758678, 24.588358, 22.9, 110.4], [54.758245, 24.590675, 21.1, 109.9], [54.758747, 24.592818, 16.8, 109.3], [54.757655, 24.593519, 16.8, 107.2], [54.75847, 24.596171, 32.1, 101.1], [54.758483, 24.599259, 31.0, 95.0], [54.758475, 24.602276, 27.9, 92.4], [54.758945, 24.605233, 30.7, 91.7], [54.759185, 24.607701, 13.3, 92.5], [54.758341, 24.609036, 21.1, 94.6], [54.75755, 24.610584, 24.9, 97.2], [54.757038, 24.613076, 24.1, 99.4], [54.756572, 24.615264, 21.8, 100.6], [54.756174, 24.617554, 26.4, 98.8], [54.756387, 24.620213, 30.6, 95.9], [54.756899, 24.622829, 32.7, 94.0], [54.756872, 24.626037, 28.9, 93.0], [54.756871, 24.628811, 29.2, 92.8], [54.75682, 24.631692, 27.0, 91.7], [54.757119, 24.634381, 30.5, 89.7], [54.757653, 24.637322, 29.0, 88.3], [54.758434, 24.639617, 22.4, 88.9], [54.7596, 24.640639, 16.0, 90.9], [54.759773, 24.643104, 13.6, 94.1], [54.760376, 24.644918, 13.5, 96.7], [54.761716, 24.645735, 15.3, 97.6], [54.762717, 24.647436, 17.3, 98.2], [54.763826, 24.648923, 17.9, 98.4], [54.765114, 24.64894, 9.9, 98.6], [54.766588, 24.649019, 24.7, 99.1], [54.767901, 24.649001, 19.6, 99.5], [54.768347, 24.650692, 19.2, 99.7], [54.769557, 24.650924, 21.1, 99.5], [54.770872, 24.650932, 23.1, 99.1], [54.772183, 24.651097, 17.2, 99.4], [54.772815, 24.652683, 6.6, 99.8], [54.774021, 24.653013, 22.9, 100.2], [54.775085, 24.651943, 20.4, 101.1], [54.775804, 24.650458, 14.1, 102.1], [54.777046, 24.651707, 25.6, 102.6], [54.77814, 24.653385, 23.6, 102.2], [54.77897, 24.654912, 22.5, 101.6], [54.779877, 24.656731, 23.8, 101.3], [54.780831, 24.658242, 18.0, 102.9], [54.781853, 24.659145, 20.8, 105.1], [54.783229, 24.659405, 22.1, 104.9], [54.783736, 24.661102, 24.7, 105.8], [54.784484, 24.663345, 23.7, 107.6], [54.784711, 24.665305, 10.3, 106.8], [54.784605, 24.667532, 18.9, 103.0], [54.785145, 24.669468, 18.5, 100.7], [54.785885, 24.670926, 14.8, 99.6], [54.785715, 24.67328, 27.3, 98.6], [54.785437, 24.675525, 21.8, 98.7], [54.784058, 24.677348, 29.0, 102.0], [54.783355, 24.679661, 17.0, 106.4], [54.782878, 24.681326, 20.2, 109.7], [54.781919, 24.682733, 17.0, 111.3], [54.780572, 24.683834, 22.4, 111.2], [54.779597, 24.685253, 13.8, 111.8], [54.779414, 24.687721, 27.0, 115.2], [54.779476, 24.69056, 31.0, 119.8], [54.779509, 24.692953, 20.0, 122.8], [54.779566, 24.695587, 26.7, 125.7], [54.77963, 24.698, 24.6, 129.6], [54.779682, 24.700369, 13.1, 132.6], [54.779947, 24.702512, 16.9, 133.5], [54.780184, 24.70463, 21.0, 134.1], [54.780262, 24.707066, 24.7, 136.1], [54.780386, 24.709737, 25.2, 135.4], [54.780563, 24.712442, 25.6, 135.4], [54.780585, 24.715083, 23.6, 137.6], [54.780519, 24.717205, 20.1, 139.0], [54.78034, 24.717846, 25.6, 138.9], [54.780313, 24.716611, 13.1, 137.9], [54.778975, 24.717055, 20.1, 136.7], [54.778165, 24.718918, 19.6, 137.6], [54.777461, 24.720759, 21.9, 142.1], [54.776853, 24.722907, 24.4, 148.0], [54.776571, 24.723467, 10.4, 152.4], [54.777414, 24.724372, 6.1, 154.3], [54.777421, 24.724361, 6.5, 154.2], [54.776736, 24.723237, 19.1, 150.7], [54.777364, 24.721234, 22.7, 144.7], [54.778031, 24.719255, 25.1, 139.1], [54.778806, 24.71755, 19.8, 135.0], [54.778089, 24.717136, 29.0, 132.1], [54.776531, 24.718181, 24.3, 130.0], [54.775085, 24.718138, 27.5, 129.6], [54.773793, 24.716974, 26.1, 130.1], [54.772306, 24.716028, 27.7, 129.0], [54.770874, 24.716094, 28.4, 127.5], [54.769306, 24.717156, 28.6, 126.5], [54.76782, 24.718518, 25.8, 126.8], [54.766648, 24.71992, 22.9, 127.2], [54.765085, 24.718985, 30.4, 127.2], [54.763487, 24.718221, 25.3, 128.1], [54.762049, 24.717847, 17.2, 128.7], [54.761284, 24.71931, 19.4, 128.7], [54.761017, 24.721397, 19.1, 130.9], [54.760847, 24.723685, 17.4, 136.5], [54.760111, 24.725583, 17.5, 143.9], [54.758918, 24.726067, 18.1, 150.2], [54.757861, 24.725047, 15.1, 153.1], [54.756717, 24.725334, 18.5, 153.4], [54.755523, 24.725352, 12.3, 153.4], [54.754254, 24.725808, 13.7, 156.9], [54.753054, 24.726274, 19.2, 161.1], [54.751708, 24.726937, 20.9, 162.7], [54.750533, 24.728386, 15.0, 165.0], [54.749541, 24.730189, 20.2, 166.0], [54.748783, 24.731997, 19.0, 166.1], [54.748186, 24.7339, 24.6, 166.7], [54.747467, 24.73596, 24.4, 167.9], [54.746984, 24.737868, 18.4, 170.1], [54.746773, 24.739816, 17.4, 170.7], [54.745878, 24.741398, 15.6, 166.9], [54.745062, 24.743052, 15.0, 159.6], [54.7437, 24.742847, 16.6, 151.9], [54.742377, 24.742469, 15.6, 146.9], [54.7412, 24.742477, 15.0, 144.8], [54.740382, 24.744024, 18.6, 145.3], [54.739875, 24.746016, 20.1, 146.0], [54.739109, 24.747718, 19.6, 145.7], [54.738137, 24.749227, 15.0, 146.0], [54.737323, 24.751047, 19.6, 146.0], [54.736803, 24.7532, 16.4, 144.7], [54.736324, 24.755429, 18.2, 142.9], [54.736663, 24.757662, 22.9, 141.9], [54.736997, 24.759708, 19.7, 142.2], [54.736645, 24.761996, 22.7, 143.1], [54.736081, 24.764057, 21.4, 143.7], [54.735276, 24.765862, 24.1, 144.6], [54.735004, 24.767762, 19.2, 147.4], [54.736072, 24.769334, 18.1, 151.1], [54.737005, 24.770722, 20.8, 153.1], [54.737046, 24.772487, 21.8, 154.2], [54.736549, 24.774426, 21.0, 155.3], [54.736207, 24.776468, 20.2, 157.2], [54.735615, 24.778312, 23.6, 159.9], [54.735221, 24.780271, 19.7, 163.2], [54.735866, 24.781979, 20.1, 165.9], [54.736558, 24.783686, 20.5, 166.4], [54.737103, 24.785741, 25.5, 166.7], [54.736482, 24.786998, 20.8, 169.4], [54.734942, 24.787511, 28.2, 173.9], [54.73316, 24.787954, 29.8, 176.0], [54.731468, 24.788559, 28.9, 174.6], [54.730149, 24.790429, 28.0, 173.6], [54.729016, 24.792175, 16.7, 173.3], [54.729399, 24.794183, 20.8, 172.0], [54.729556, 24.796229, 18.0, 170.3], [54.729735, 24.79832, 20.7, 170.2], [54.729915, 24.800411, 24.0, 171.3], [54.730098, 24.802589, 19.6, 172.2], [54.73027, 24.804677, 18.5, 171.3], [54.730775, 24.806734, 17.3, 167.1], [54.73179, 24.808325, 16.9, 160.4], [54.732721, 24.810036, 17.2, 153.9], [54.733033, 24.811998, 22.0, 149.4], [54.733503, 24.813998, 20.1, 148.6], [54.734108, 24.815825, 20.3, 149.1], [54.734733, 24.817638, 17.4, 146.4], [54.734891, 24.82003, 16.4, 143.3], [54.735328, 24.822071, 21.5, 140.0], [54.735769, 24.824191, 19.9, 136.9], [54.7356, 24.826305, 16.9, 136.2], [54.735192, 24.828381, 14.5, 139.4], [54.735272, 24.830668, 15.7, 143.5], [54.735461, 24.832751, 20.3, 145.0], [54.735665, 24.834893, 19.3, 145.6], [54.735867, 24.83699, 22.8, 145.5], [54.736064, 24.839057, 18.2, 144.2], [54.73625, 24.841183, 12.5, 141.5], [54.73502, 24.841306, 19.1, 139.4], [54.733706, 24.842214, 16.9, 140.1], [54.732504, 24.843244, 19.9, 143.8], [54.731354, 24.84426, 17.9, 151.0], [54.730052, 24.845336, 18.7, 158.2], [54.728887, 24.845582, 20.4, 162.4], [54.727712, 24.845465, 19.0, 164.8], [54.726469, 24.845304, 18.2, 166.9], [54.726521, 24.845362, 9.2, 167.1], [54.726769, 24.84737, 11.8, 165.4], [54.726793, 24.847857, 12.7, 164.8], [54.726555, 24.845545, 12.4, 166.3], [54.726848, 24.84541, 15.8, 166.5], [54.728141, 24.845474, 20.0, 163.9], [54.729381, 24.845631, 18.8, 161.0], [54.7305, 24.845, 19.1, 156.7], [54.731674, 24.844012, 18.5, 150.3], [54.73281, 24.843004, 20.9, 143.6], [54.733996, 24.841998, 19.5, 139.3], [54.735235, 24.8413, 21.6, 137.2], [54.736519, 24.841553, 16.4, 134.7], [54.73774, 24.841797, 19.2, 129.9], [54.739026, 24.841851, 18.3, 124.2], [54.740368, 24.841236, 21.7, 120.2], [54.741529, 24.840691, 21.0, 118.8], [54.742785, 24.840104, 22.0, 118.4], [54.74411, 24.839832, 16.5, 119.5], [54.745446, 24.840405, 17.1, 121.8], [54.746625, 24.840979, 19.7, 123.9], [54.747807, 24.841683, 22.1, 126.0], [54.749215, 24.84271, 24.9, 126.9], [54.750527, 24.843707, 24.4, 125.8], [54.750874, 24.845029, 23.9, 124.2], [54.749517, 24.846867, 31.1, 122.5], [54.748115, 24.84878, 29.9, 122.2], [54.746645, 24.850776, 31.9, 123.1], [54.745248, 24.852722, 28.4, 124.3], [54.743849, 24.854863, 32.1, 124.7], [54.742585, 24.857072, 30.4, 123.0], [54.741393, 24.859278, 27.1, 122.1], [54.741436, 24.861347, 19.9, 123.6], [54.741884, 24.863508, 16.5, 125.5], [54.742043, 24.865549, 19.2, 125.8], [54.742251, 24.867668, 11.6, 122.8], [54.742261, 24.869919, 18.0, 121.1], [54.742266, 24.872227, 16.5, 120.7], [54.743085, 24.873678, 13.1, 120.0], [54.743602, 24.875187, 13.4, 122.5], [54.743131, 24.877264, 17.3, 125.0], [54.742912, 24.879597, 17.0, 125.2], [54.742788, 24.88181, 11.0, 124.8], [54.742594, 24.883998, 16.3, 126.4], [54.742182, 24.886386, 15.8, 128.4], [54.741633, 24.888441, 13.8, 127.2], [54.740354, 24.889173, 12.8, 123.2], [54.738973, 24.889546, 15.8, 120.4], [54.738821, 24.891718, 21.2, 119.3], [54.738628, 24.894081, 22.7, 118.9], [54.738367, 24.896208, 19.2, 118.9], [54.738208, 24.898404, 21.3, 119.6], [54.738004, 24.900442, 20.7, 123.2], [54.73866, 24.902259, 18.5, 130.5], [54.739432, 24.903918, 20.4, 138.8], [54.739775, 24.90598, 19.8, 147.2], [54.740278, 24.908295, 24.1, 154.0], [54.74097, 24.910606, 27.3, 155.8], [54.741747, 24.912987, 24.6, 153.5], [54.742473, 24.915317, 25.4, 151.7], [54.743126, 24.917538, 23.0, 152.0], [54.743438, 24.919778, 22.5, 153.1], [54.743237, 24.922142, 24.5, 154.3], [54.742607, 24.924383, 24.2, 154.2], [54.742001, 24.926449, 22.6, 153.3], [54.741755, 24.928793, 24.6, 152.3], [54.741179, 24.930629, 25.8, 152.1], [54.739729, 24.930219, 31.2, 153.0], [54.738212, 24.928943, 25.2, 154.3], [54.736799, 24.928995, 25.3, 155.9], [54.735414, 24.929261, 21.6, 156.9], [54.734053, 24.929634, 13.9, 157.2], [54.732923, 24.929496, 5.5, 157.1], [54.731738, 24.929203, 14.4, 155.4], [54.730689, 24.93013, 9.7, 155.4], [54.729507, 24.93019, 2.2, 158.0], [54.728592, 24.931444, 9.8, 158.6], [54.728021, 24.933257, 6.3, 158.1], [54.727511, 24.935171, 14.3, 158.3], [54.726958, 24.936937, 12.4, 159.6], [54.726523, 24.938988, 11.0, 160.0], [54.726079, 24.940952, 11.3, 159.2], [54.725565, 24.94286, 13.6, 159.1], [54.725026, 24.94476, 14.7, 158.6], [54.724553, 24.946835, 14.5, 157.7], [54.723868, 24.948705, 16.5, 157.6], [54.723088, 24.95027, 1.2, 158.5], [54.722345, 24.952052, 19.8, 159.2], [54.721447, 24.953788, 16.8, 159.5], [54.72091, 24.955877, 16.3, 161.0], [54.720646, 24.958086, 21.7, 160.3], [54.720309, 24.960231, 17.2, 157.4], [54.719971, 24.962326, 22.0, 155.8], [54.719793, 24.964521, 17.4, 151.6], [54.719696, 24.966843, 21.4, 146.7], [54.71913, 24.968736, 21.0, 144.6], [54.718253, 24.970471, 20.0, 145.6], [54.717057, 24.971331, 18.1, 149.8], [54.716055, 24.972285, 16.7, 154.9], [54.715775, 24.974583, 19.4, 158.1], [54.715173, 24.976585, 18.4, 159.4], [54.714279, 24.978793, 23.6, 157.4], [54.713456, 24.979917, 11.2, 155.3], [54.712182, 24.979313, 14.0, 157.2], [54.710847, 24.979168, 16.3, 162.3], [54.709777, 24.979249, 10.9, 167.6], [54.708627, 24.97813, 17.6, 171.4], [54.707495, 24.977046, 13.1, 173.4], [54.706431, 24.976103, 3.8, 173.7], [54.705537, 24.975294, 0.8, 172.9], [54.706658, 24.976334, 14.0, 171.8], [54.707698, 24.977231, 9.5, 170.8], [54.708777, 24.978264, 18.5, 169.8], [54.709937, 24.979485, 17.9, 166.9], [54.711206, 24.97916, 15.3, 161.4], [54.712469, 24.979732, 17.9, 156.5], [54.713671, 24.980283, 3.5, 150.0], [54.712853, 24.982747, 26.7, 141.8], [54.712074, 24.984849, 24.4, 136.5], [54.711198, 24.986602, 18.3, 134.9], [54.710173, 24.9873, 16.0, 136.3], [54.709005, 24.986113, 24.9, 141.6], [54.70763, 24.985271, 24.4, 146.9], [54.706226, 24.986631, 27.8, 147.2], [54.704828, 24.988642, 33.3, 147.6], [54.703496, 24.990758, 27.1, 148.9], [54.702191, 24.992889, 32.2, 149.1], [54.700876, 24.994999, 29.6, 148.3], [54.699534, 24.99714, 32.8, 148.0], [54.698158, 24.999344, 32.1, 148.6], [54.696699, 25.001687, 34.9, 149.3], [54.695312, 25.00394, 31.0, 150.3], [54.693992, 25.006108, 22.2, 151.1], [54.692888, 25.007959, 25.1, 150.9], [54.691428, 25.010011, 32.7, 150.2], [54.689726, 25.01182, 33.6, 150.8], [54.68789, 25.013175, 35.4, 153.2], [54.686452, 25.014057, 33.1, 156.9], [54.684572, 25.015179, 36.0, 162.4], [54.682616, 25.01614, 32.1, 166.0], [54.680689, 25.017097, 32.5, 166.2], [54.678768, 25.018123, 36.0, 165.1], [54.676893, 25.019288, 33.3, 163.8], [54.675812, 25.021762, 31.5, 162.7], [54.675839, 25.025286, 31.7, 159.7], [54.675902, 25.028445, 28.0, 151.8], [54.675955, 25.031055, 19.0, 139.7], [54.676049, 25.033653, 32.2, 127.5], [54.676128, 25.036675, 31.1, 117.9], [54.676201, 25.03983, 28.4, 109.3], [54.676266, 25.04291, 30.7, 105.5], [54.67634, 25.045836, 27.9, 109.2], [54.676913, 25.048252, 30.7, 111.6], [54.678238, 25.049792, 18.9, 112.6], [54.679555, 25.050276, 28.8, 115.1], [54.680948, 25.050858, 21.5, 116.8], [54.682273, 25.051988, 24.4, 117.1], [54.683161, 25.053717, 20.6, 119.1], [54.683968, 25.054751, 19.0, 124.1], [54.68349, 25.056536, 20.8, 130.5], [54.682387, 25.058459, 26.5, 134.3], [54.681415, 25.060517, 26.0, 133.7], [54.680387, 25.063041, 31.5, 131.0], [54.679496, 25.065791, 32.4, 126.6], [54.678793, 25.068484, 28.6, 119.9], [54.678291, 25.071137, 21.4, 112.2], [54.677504, 25.072761, 13.9, 107.2], [54.67608, 25.072846, 17.0, 105.4], [54.674948, 25.073915, 22.3, 104.8], [54.67402, 25.075451, 21.5, 104.2], [54.674077, 25.077155, 15.2, 103.2], [54.673763, 25.078917, 20.4, 101.7], [54.673502, 25.080708, 2.1, 100.1], [54.674646, 25.081588, 13.9, 98.1], [54.675795, 25.082569, 15.9, 96.6], [54.675567, 25.084565, 19.8, 96.1], [54.67503, 25.086596, 21.5, 96.1], [54.674438, 25.088634, 19.5, 96.7], [54.673837, 25.090519, 12.6, 97.5], [54.672697, 25.089873, 21.3, 98.3], [54.671594, 25.089377, 11.5, 99.7], [54.671092, 25.091351, 9.9, 101.6], [54.670418, 25.093521, 16.9, 103.4], [54.669856, 25.095593, 19.2, 104.9], [54.66931, 25.097522, 9.6, 105.3], [54.668714, 25.099501, 17.2, 105.0], [54.668112, 25.101646, 13.1, 104.8], [54.668221, 25.10316, 12.7, 105.2], [54.669159, 25.104636, 9.2, 106.3], [54.668667, 25.104482, 8.9, 106.2], [54.668712, 25.106617, 16.4, 103.0], [54.668418, 25.108703, 11.8, 99.6], [54.667897, 25.11083, 24.1, 98.9], [54.667271, 25.113412, 27.5, 102.5], [54.666614, 25.116211, 30.3, 108.7], [54.665755, 25.118897, 28.4, 115.7], [54.664882, 25.121428, 29.3, 122.0], [54.664163, 25.123546, 26.1, 126.5], [54.663435, 25.125808, 18.1, 129.0], [54.662607, 25.128081, 31.1, 130.8], [54.661654, 25.130852, 29.7, 132.9], [54.660727, 25.133572, 29.5, 134.7], [54.659822, 25.136173, 24.4, 135.6], [54.65901, 25.138446, 26.0, 135.7], [54.658134, 25.141013, 28.6, 136.1], [54.657433, 25.142872, 10.1, 136.9], [54.657189, 25.145324, 25.5, 139.8], [54.656625, 25.148084, 29.8, 143.4], [54.656618, 25.150886, 31.7, 142.9], [54.657204, 25.153939, 27.9, 141.1], [54.657923, 25.156031, 23.9, 140.8], [54.658583, 25.157964, 24.3, 139.6], [54.659392, 25.159474, 13.7, 138.2], [54.65987, 25.161772, 29.2, 137.3], [54.660743, 25.164359, 30.6, 134.4], [54.661631, 25.167012, 30.3, 127.7], [54.662589, 25.169656, 29.1, 118.2], [54.663713, 25.171423, 24.8, 108.8], [54.664908, 25.172616, 12.5, 101.9], [54.665991, 25.173672, 20.1, 97.1], [54.667103, 25.174631, 19.2, 93.8], [54.668403, 25.176078, 26.2, 92.4], [54.669379, 25.178121, 19.9, 92.5], [54.669907, 25.180418, 23.4, 93.4], [54.670134, 25.182544, 18.7, 94.7], [54.670383, 25.184752, 22.8, 96.5], [54.670766, 25.18737, 30.3, 99.8], [54.67108, 25.190124, 24.8, 104.3], [54.671717, 25.19261, 27.5, 108.7], [54.67269, 25.194103, 23.7, 115.9], [54.673821, 25.194696, 21.2, 124.4], [54.674291, 25.19625, 22.3, 129.8], [54.673513, 25.197864, 18.0, 128.7], [54.672928, 25.199528, 20.9, 124.7], [54.67394, 25.201097, 16.3, 124.0], [54.673086, 25.203389, 30.4, 127.6], [54.672845, 25.206269, 24.7, 131.9], [54.672644, 25.208865, 27.7, 134.5], [54.672574, 25.211469, 28.2, 135.2], [54.673093, 25.214012, 26.4, 135.5], [54.674316, 25.215213, 21.9, 134.4], [54.675778, 25.215811, 25.2, 131.7], [54.677222, 25.216405, 25.6, 129.2], [54.678473, 25.216873, 18.7, 126.5], [54.678064, 25.219014, 24.4, 119.6], [54.677189, 25.221304, 26.5, 108.9], [54.676466, 25.222671, 12.9, 101.1], [54.675133, 25.22282, 24.7, 97.8], [54.673595, 25.223456, 23.2, 96.4], [54.672264, 25.224502, 27.6, 97.2], [54.671379, 25.226701, 22.3, 99.2], [54.67086, 25.228538, 6.8, 100.7], [54.670421, 25.230508, 7.7, 101.6], [54.670051, 25.232547, 19.9, 102.6], [54.669617, 25.234643, 13.4, 104.4], [54.669252, 25.236823, 16.0, 107.1], [54.670396, 25.23741, 14.7, 109.7], [54.67156, 25.237556, 20.2, 110.5], [54.672585, 25.238931, 17.4, 110.8], [54.673458, 25.240409, 9.0, 113.7], [54.672288, 25.241976, 17.7, 118.2], [54.671352, 25.243408, 13.4, 121.9], [54.670464, 25.245058, 20.8, 124.5], [54.669706, 25.246881, 23.7, 127.4], [54.668887, 25.24888, 24.9, 130.8], [54.667824, 25.250375, 25.5, 134.8], [54.66678, 25.251994, 18.2, 137.9], [54.665974, 25.250335, 9.3, 138.7], [54.665668, 25.251848, 21.9, 139.8], [54.665117, 25.253751, 23.3, 140.0], [54.663889, 25.254985, 22.4, 139.3], [54.662708, 25.255856, 23.2, 138.6], [54.662162, 25.257567, 22.3, 138.3], [54.662874, 25.259294, 22.4, 140.6], [54.662497, 25.261583, 25.7, 144.2], [54.66233, 25.263451, 15.1, 147.3], [54.662608, 25.265443, 18.9, 151.2], [54.66226, 25.26764, 24.2, 156.9], [54.661881, 25.269867, 21.3, 163.4], [54.661551, 25.272022, 18.0, 168.5], [54.661294, 25.274384, 13.0, 171.1], [54.660494, 25.273485, 14.0, 170.4], [54.659212, 25.273041, 24.3, 168.1], [54.65779, 25.272528, 19.0, 166.1], [54.656589, 25.274094, 24.2, 164.0], [54.655566, 25.276024, 25.1, 163.2], [54.65512, 25.278205, 19.4, 164.9], [54.655036, 25.280405, 22.1, 169.0], [54.655277, 25.282687, 20.9, 174.7], [54.654989, 25.28271, 20.1, 179.9], [54.653756, 25.282982, 21.4, 182.9], [54.652488, 25.2827, 19.0, 183.6], [54.651273, 25.282437, 22.5, 183.8], [54.650052, 25.282043, 12.9, 184.3], [54.65002, 25.279776, 16.6, 184.4], [54.649312, 25.278824, 19.3, 183.3], [54.647954, 25.278644, 24.0, 183.6], [54.647433, 25.277056, 21.5, 184.8], [54.646523, 25.276467, 17.8, 185.6], [54.645124, 25.277015, 17.8, 186.6], [54.643939, 25.277835, 1.2, 187.1], [54.642618, 25.277977, 6.3, 187.5], [54.641369, 25.277883, 19.5, 187.9], [54.640146, 25.277224, 23.7, 178.3], [54.639102, 25.276916, 23.6, 97.9]]; // [lat, lon, speed_kmh, ele_m]
+
+function lerp(a,b,t){return a+(b-a)*t;}
+function hexToRgb(h){h=h.replace('#','');return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+function rgbToHex(r,g,b){return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');}
+function gradientColor(t, stops){
+  t = Math.max(0, Math.min(1, t));
+  const seg = 1/(stops.length-1);
+  const i = Math.min(stops.length-2, Math.floor(t/seg));
+  const localT = (t - i*seg)/seg;
+  const c1 = hexToRgb(stops[i]), c2 = hexToRgb(stops[i+1]);
+  return rgbToHex(lerp(c1[0],c2[0],localT), lerp(c1[1],c2[1],localT), lerp(c1[2],c2[2],localT));
+}
+
+const speedStops = ['#2E6E9E','#3FA796','#FF5A1F'];
+const eleStops = ['#1F5E56','#B08D2E','#FF5A1F'];
+
+function drawColoredRoute(mapId, valueIndex, stops, minV, maxV){
+  const map = L.map(mapId, {scrollWheelZoom:false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    maxZoom: 19
+  }).addTo(map);
+
+  const latlngs = trackData.map(p => [p[0], p[1]]);
+  map.fitBounds(latlngs, {padding:[20,20]});
+
+  for(let i=1; i<trackData.length; i++){
+    const v = (trackData[i][valueIndex] + trackData[i-1][valueIndex]) / 2;
+    const t = (v - minV) / (maxV - minV);
+    const color = gradientColor(t, stops);
+    L.polyline([[trackData[i-1][0],trackData[i-1][1]],[trackData[i][0],trackData[i][1]]], {
+      color: color, weight: 4, opacity: 0.9
+    }).addTo(map);
+  }
+  return map;
+}
+
+let mapsInitialized = {lt:false, en:false};
+
+function initMaps(lang){
+  if(mapsInitialized[lang]) return;
+  if(lang === 'lt'){
+    drawColoredRoute('map-speed', 2, speedStops, 0, 39);
+    drawColoredRoute('map-ele', 3, eleStops, 34, 190);
+  } else {
+    drawColoredRoute('map-speed-en', 2, speedStops, 0, 39);
+    drawColoredRoute('map-ele-en', 3, eleStops, 34, 190);
+  }
+  mapsInitialized[lang] = true;
+}
+
+const heroText = {
+  lt: {eyebrow:'RIDE BEYOND LIMITS — MARŠRUTO ATASKAITA', title:'Rumšiškės → Vilniaus oro uostas', footer:'Vieta ties starto ir finišo tašku apkarpyta privatumo sumetimais. © EUC Rover.'},
+  en: {eyebrow:'RIDE BEYOND LIMITS — RIDE REPORT', title:'Rumšiškės → Vilnius Airport', footer:'Location near the start and finish points is trimmed for privacy. © EUC Rover.'}
+};
+
+function setLang(lang){
+  document.getElementById('lt').style.display = lang==='lt' ? 'block' : 'none';
+  document.getElementById('en').style.display = lang==='en' ? 'block' : 'none';
+  document.getElementById('btn-lt').classList.toggle('active', lang==='lt');
+  document.getElementById('btn-en').classList.toggle('active', lang==='en');
+  document.getElementById('hero-eyebrow').textContent = heroText[lang].eyebrow;
+  document.getElementById('hero-title').textContent = heroText[lang].title;
+  document.getElementById('footer-note').textContent = heroText[lang].footer;
+  document.documentElement.lang = lang;
+  setTimeout(()=>initMaps(lang), 50);
+}
+
+function shareTo(network){
+  const url = encodeURIComponent(window.location.href);
+  const text = encodeURIComponent(document.getElementById('hero-title').textContent + ' — EUC Rover');
+  let shareUrl = '';
+  if(network==='facebook') shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+  if(network==='x') shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+  if(network==='whatsapp') shareUrl = `https://wa.me/?text=${text}%20${url}`;
+  if(network==='reddit') shareUrl = `https://www.reddit.com/submit?url=${url}&title=${text}`;
+  window.open(shareUrl, '_blank', 'noopener');
+}
+
+initMaps('lt');
+</script>
+
+</body>
+</html>
